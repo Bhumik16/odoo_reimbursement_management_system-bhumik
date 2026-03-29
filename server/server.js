@@ -1,41 +1,37 @@
 const express = require('express');
 const cors = require('cors');
+const cookieParser = require('cookie-parser');
 const dotenv = require('dotenv');
 
 dotenv.config();
 
+const authRoutes = require('./modules/auth/auth.routes');
+const userRoutes = require('./modules/user/user.routes');
+const { getDb } = require('./db');
+
 const app = express();
 const port = process.env.PORT || 5000;
 
-app.use(cors());
+app.use(cors({
+  origin: 'http://localhost:5173',
+  credentials: true
+}));
 app.use(express.json());
+app.use(cookieParser());
 
-// Routes Placeholder
-app.get('/api/health', (req, res) => {
-  res.json({ status: 'healthy', timestamp: new Date() });
-});
+// Initialize DB
+getDb().then(() => console.log('Database initialized')).catch(console.error);
 
-// Admin Routes
-app.get('/api/admin/users', (req, res) => {
-  res.json({ message: 'List of users' });
-});
+app.use('/api/auth', authRoutes);
+app.use('/api/users', userRoutes);
 
-app.get('/api/admin/rules', (req, res) => {
-  res.json({ message: 'List of rules' });
-});
+// Placeholder routes
+app.get('/api/health', (req, res) => res.json({ status: 'healthy', timestamp: new Date() }));
 
-// Manager Routes
-app.get('/api/manager/approvals', (req, res) => {
-  res.json({ message: 'List of approvals' });
-});
-
-// Employee Routes
-app.get('/api/employee/expenses', (req, res) => {
-  res.json({ message: 'List of expenses' });
-});
-
-app.post('/api/employee/expenses', (req, res) => {
-  res.status(201).json({ message: 'Expense created successfully', data: req.body });
+// Error handling
+app.use((err, req, res, next) => {
+  console.error(err);
+  res.status(500).json({ message: 'Something went wrong!' });
 });
 
 app.listen(port, () => {
