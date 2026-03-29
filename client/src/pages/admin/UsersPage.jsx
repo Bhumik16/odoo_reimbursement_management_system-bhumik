@@ -5,7 +5,7 @@ import { Button } from '../../components/ui/Button';
 import { Avatar } from '../../components/ui/Avatar';
 import { Input } from '../../components/ui/Input';
 import { Modal } from '../../components/ui/Modal';
-import { Search, Copy, Check, Info } from 'lucide-react';
+import { Search, Info, Plus } from 'lucide-react';
 import api from '../../lib/axios';
 
 const AdminBadge = () => (
@@ -17,6 +17,7 @@ const AdminBadge = () => (
 export const UsersPage = () => {
   const [form, setForm] = useState({ name: '', email: '', role: 'employee', manager_id: '' });
   const [error, setError] = useState('');
+  const [showForm, setShowForm] = useState(false);
   
   const [isToastOpen, setToastOpen] = useState(false);
 
@@ -44,6 +45,7 @@ export const UsersPage = () => {
       setToastOpen(true);
       setForm({ name: '', email: '', role: 'employee', manager_id: '' });
       setError('');
+      setShowForm(false);
     },
     onError: (err) => {
       setError(err.response?.data?.message || err.response?.data?.errors?.[0]?.message || 'Failed to create user');
@@ -64,14 +66,28 @@ export const UsersPage = () => {
     createMutation.mutate(form);
   };
 
+  const handleSendPassword = async (userId) => {
+    try {
+      await api.post(`/users/${userId}/send-password`);
+      alert("Password sent to user's email");
+    } catch (err) {
+      alert("Failed to send password");
+    }
+  };
+
   return (
     <div className="space-y-8 animate-in fade-in duration-300">
       <div className="flex items-center justify-between">
         <h2 className="text-xl font-bold text-text-primary">Users & Roles</h2>
         
-        <div className="flex gap-3 w-full max-w-sm">
+        <div className="flex gap-3 w-full max-w-sm ml-auto mr-4">
           <Input icon={Search} placeholder="Search users by name or email..." className="w-full bg-white border border-border focus:ring-primary rounded-xl" />
         </div>
+
+        <Button onClick={() => setShowForm(true)} className="bg-primary text-white px-4 py-2 hover:bg-primary-hover rounded-xl shadow-sm">
+          <Plus className="h-4 w-4 mr-2" />
+          New User
+        </Button>
       </div>
 
       <div className="bg-white rounded-xl shadow-sm border border-border overflow-hidden">
@@ -132,8 +148,8 @@ export const UsersPage = () => {
                 </TableCell>
                 
                 <TableCell className="text-right">
-                  <Button variant="secondary" size="sm" className="text-primary border-border hover:bg-[#EFF6FF]">
-                    Reset Pass
+                  <Button variant="secondary" size="sm" onClick={() => handleSendPassword(user.id)} className="text-primary border-border hover:bg-[#EFF6FF]">
+                    Send password
                   </Button>
                 </TableCell>
               </TableRow>
@@ -149,57 +165,59 @@ export const UsersPage = () => {
         </Table>
       </div>
 
-      <div className="bg-white rounded-xl shadow-sm border border-border p-6">
-        <h3 className="text-lg font-semibold text-text-primary mb-4">Add new user</h3>
-        
-        {error && <p className="text-sm text-error bg-red-50 p-3 rounded-lg mb-4">{error}</p>}
-        
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-text-primary mb-1">Username</label>
-              <Input placeholder="John Doe" value={form.name} onChange={e => setForm({...form, name: e.target.value})} required className="bg-white" />
+      {showForm && (
+        <div className="bg-white rounded-xl shadow-sm border border-border p-6 mt-6">
+          <h3 className="text-lg font-semibold text-text-primary mb-4">Add new user</h3>
+          
+          {error && <p className="text-sm text-error bg-red-50 p-3 rounded-lg mb-4">{error}</p>}
+          
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-text-primary mb-1">Username</label>
+                <Input placeholder="John Doe" value={form.name} onChange={e => setForm({...form, name: e.target.value})} required className="bg-white" />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-text-primary mb-1">Email</label>
+                <Input type="email" placeholder="john@company.com" value={form.email} onChange={e => setForm({...form, email: e.target.value})} required className="bg-white" />
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-text-primary mb-1">Role</label>
+                <select 
+                  className="w-full rounded-xl border border-border bg-white px-4 py-2 text-text-primary outline-none focus:border-primary focus:ring-2 focus:ring-primary-light h-10 transition-all focus:bg-[#DBEAFE]"
+                  value={form.role} onChange={e => setForm({...form, role: e.target.value})}
+                >
+                  <option value="employee">Employee</option>
+                  <option value="manager">Manager</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-text-primary mb-1">Manager</label>
+                <select 
+                  className="w-full rounded-xl border border-border bg-white px-4 py-2 text-text-primary outline-none focus:border-primary focus:ring-2 focus:ring-primary-light h-10 transition-all focus:bg-[#DBEAFE]"
+                  value={form.manager_id} onChange={e => setForm({...form, manager_id: e.target.value})}
+                >
+                  <option value="">Select a manager (optional)</option>
+                  {managers.map(m => (
+                    <option key={m.id} value={m.id}>{m.name} ({m.role})</option>
+                  ))}
+                </select>
+              </div>
             </div>
-            <div>
-              <label className="block text-sm font-medium text-text-primary mb-1">Email</label>
-              <Input type="email" placeholder="john@company.com" value={form.email} onChange={e => setForm({...form, email: e.target.value})} required className="bg-white" />
-            </div>
-            
-            <div>
-              <label className="block text-sm font-medium text-text-primary mb-1">Role</label>
-              <select 
-                className="w-full rounded-xl border border-border bg-white px-4 py-2 text-text-primary outline-none focus:border-primary focus:ring-2 focus:ring-primary-light h-10 transition-all focus:bg-[#DBEAFE]"
-                value={form.role} onChange={e => setForm({...form, role: e.target.value})}
-              >
-                <option value="employee">Employee</option>
-                <option value="manager">Manager</option>
-              </select>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-text-primary mb-1">Manager</label>
-              <select 
-                className="w-full rounded-xl border border-border bg-white px-4 py-2 text-text-primary outline-none focus:border-primary focus:ring-2 focus:ring-primary-light h-10 transition-all focus:bg-[#DBEAFE]"
-                value={form.manager_id} onChange={e => setForm({...form, manager_id: e.target.value})}
-              >
-                <option value="">Select a manager (optional)</option>
-                {managers.map(m => (
-                  <option key={m.id} value={m.id}>{m.name} ({m.role})</option>
-                ))}
-              </select>
-            </div>
-          </div>
 
-          <div className="flex items-center gap-2 text-sm text-text-secondary mt-2 bg-gray-50 p-2 rounded inline-block">
-            <Info className="h-4 w-4 text-primary" />
-            Login credentials will be automatically sent to the user's email.
-          </div>
+            <div className="flex items-center gap-2 text-sm text-text-secondary mt-2 bg-gray-50 p-2 rounded inline-block">
+              <Info className="h-4 w-4 text-primary" />
+              Login credentials will be automatically sent to the user's email.
+            </div>
 
-          <div className="flex gap-3 pt-2">
-            <Button type="submit" isLoading={createMutation.isPending} className="bg-primary hover:bg-primary-hover text-white">Save user</Button>
-            <Button type="button" variant="secondary" onClick={() => setForm({ name: '', email: '', role: 'employee', manager_id: '' })}>Cancel</Button>
-          </div>
-        </form>
-      </div>
+            <div className="flex gap-3 pt-4">
+              <Button type="submit" isLoading={createMutation.isPending} className="bg-primary hover:bg-primary-hover text-white">Save user</Button>
+              <Button type="button" variant="secondary" onClick={() => setShowForm(false)}>Cancel</Button>
+            </div>
+          </form>
+        </div>
+      )}
 
       <Modal isOpen={isToastOpen} onClose={() => setToastOpen(false)} title="User created successfully" type="modal">
         <div className="space-y-4">

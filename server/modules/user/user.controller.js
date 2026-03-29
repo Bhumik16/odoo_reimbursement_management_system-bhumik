@@ -107,4 +107,29 @@ async function updateUser(req, res) {
   }
 }
 
-module.exports = { createUser, listUsers, updateUser };
+async function sendPassword(req, res) {
+  try {
+    const db = await getDb();
+    const { id } = req.params;
+    const companyId = req.user.companyId;
+
+    const user = await db.get(`SELECT * FROM users WHERE id = ? AND company_id = ?`, [id, companyId]);
+    if (!user) return res.status(404).json({ message: 'User not found' });
+
+    const plainPassword = generatePassword();
+    const hashedPassword = await bcrypt.hash(plainPassword, 12);
+
+    await db.run(
+      `UPDATE users SET password = ? WHERE id = ?`,
+      [hashedPassword, id]
+    );
+
+    await sendUserCredentials(user.email, plainPassword);
+
+    res.json({ message: 'Password sent successfully' });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+}
+
+module.exports = { createUser, listUsers, updateUser, sendPassword };
