@@ -10,34 +10,28 @@ const port = process.env.PORT || 5000;
 app.use(cors());
 app.use(express.json());
 
-// Routes Placeholder
+// ── Routes ──────────────────────────────────────────────────────
+app.use('/api/auth',     require('./routes/auth'));
+app.use('/api/users',    require('./routes/users'));
+app.use('/api/expenses', require('./routes/expenses'));
+app.use('/api/rules',    require('./routes/rules'));
+
+// Health check
 app.get('/api/health', (req, res) => {
   res.json({ status: 'healthy', timestamp: new Date() });
 });
 
-// Admin Routes
-app.get('/api/admin/users', (req, res) => {
-  res.json({ message: 'List of users' });
+// 404 handler
+app.use((req, res) => {
+  res.status(404).json({ error: `Route ${req.method} ${req.path} not found` });
 });
 
-app.get('/api/admin/rules', (req, res) => {
-  res.json({ message: 'List of rules' });
-});
-
-// Manager Routes
-app.get('/api/manager/approvals', (req, res) => {
-  res.json({ message: 'List of approvals' });
-});
-
-// Employee Routes
-app.get('/api/employee/expenses', (req, res) => {
-  res.json({ message: 'List of expenses' });
-});
-
-app.post('/api/employee/expenses', (req, res) => {
-  res.status(201).json({ message: 'Expense created successfully', data: req.body });
+// Global error handler
+app.use((err, req, res, next) => {
+  console.error(err.stack);
+  res.status(500).json({ error: err.message || 'Internal server error' });
 });
 
 app.listen(port, () => {
-  console.log(`Server is running on http://localhost:${port}`);
+  console.log(`🚀 Server running on http://localhost:${port}`);
 });

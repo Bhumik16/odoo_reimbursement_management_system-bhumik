@@ -1,11 +1,21 @@
 import { create } from 'zustand';
+import { persist } from 'zustand/middleware';
 
-export const useAuthStore = create((set) => ({
-  user: {
-    name: 'Admin User',
-    role: 'admin', // default to admin for testing. Can be 'admin', 'manager', 'employee'
-    email: 'admin@company.com'
-  },
-  setUser: (user) => set({ user }),
-  logout: () => set({ user: null }),
-}));
+export const useAuthStore = create(
+  persist(
+    (set) => ({
+      user: null,
+      token: null,
+
+      setAuth: (user, token) => set({ user, token }),
+
+      logout: () => {
+        set({ user: null, token: null });
+      },
+    }),
+    {
+      name: 'claimflow-auth', // localStorage key
+      partialize: (state) => ({ user: state.user, token: state.token }),
+    }
+  )
+);

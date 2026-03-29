@@ -2,74 +2,77 @@ import React from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { AppLayout } from './components/layout/AppLayout';
+import { ProtectedRoute } from './components/layout/ProtectedRoute';
 import { useAuthStore } from './stores/authStore';
 
-// Admin Pages
+// Auth
+import { LoginPage } from './pages/auth/LoginPage';
+import { SignupPage } from './pages/auth/SignupPage';
+
+// Admin
 import { UsersPage } from './pages/admin/UsersPage';
 import { RulesPage } from './pages/admin/RulesPage';
 import { AnalyticsPage } from './pages/admin/AnalyticsPage';
 
-// Manager Pages
+// Manager
+import { ManagerDashboard } from './pages/manager/ManagerDashboard';
 import { ApprovalQueue } from './pages/manager/ApprovalQueue';
 
-// Employee Pages
+// Employee
 import { ExpenseList } from './pages/employee/ExpenseList';
+import { ExpenseDetail } from './pages/employee/ExpenseDetail';
 
-const queryClient = new QueryClient();
-
-// A simple Role switcher component for demonstration purposes
-const RoleSwitcher = () => {
-  const { user, setUser } = useAuthStore();
-  
-  const switchRole = (role) => {
-    setUser({ ...user, role });
-  };
-
-  return (
-    <div className="fixed bottom-4 right-4 bg-surface p-4 rounded-xl shadow-2xl border border-border z-50 flex gap-2">
-      <span className="text-xs font-semibold self-center mr-2">Test role:</span>
-      <button onClick={() => switchRole('admin')} className={`px-2 py-1 text-xs rounded ${user?.role === 'admin' ? 'bg-primary text-white' : 'bg-gray-100 hover:bg-gray-200'}`}>Admin</button>
-      <button onClick={() => switchRole('manager')} className={`px-2 py-1 text-xs rounded ${user?.role === 'manager' ? 'bg-primary text-white' : 'bg-gray-100 hover:bg-gray-200'}`}>Manager</button>
-      <button onClick={() => switchRole('employee')} className={`px-2 py-1 text-xs rounded ${user?.role === 'employee' ? 'bg-primary text-white' : 'bg-gray-100 hover:bg-gray-200'}`}>Employee</button>
-    </div>
-  );
-};
+const queryClient = new QueryClient({
+  defaultOptions: { queries: { staleTime: 30_000, retry: 1 } },
+});
 
 function App() {
   const { user } = useAuthStore();
 
-  const getDefaultRoute = () => {
+  const defaultRoute = () => {
     if (!user) return '/login';
-    switch (user.role) {
-      case 'admin': return '/admin/analytics';
-      case 'manager': return '/manager/approvals';
-      case 'employee': return '/employee/expenses';
-      default: return '/employee/expenses';
-    }
+    if (user.role === 'admin') return '/admin/analytics';
+    if (user.role === 'manager') return '/manager/dashboard';
+    return '/employee/expenses';
   };
 
   return (
     <QueryClientProvider client={queryClient}>
       <BrowserRouter>
         <Routes>
-          <Route path="/" element={<Navigate to={getDefaultRoute()} replace />} />
-          
-          <Route element={<AppLayout />}>
-            {/* Admin Routes */}
-            <Route path="/admin/users" element={<UsersPage />} />
-            <Route path="/admin/rules" element={<RulesPage />} />
-            <Route path="/admin/analytics" element={<AnalyticsPage />} />
-            
-            {/* Manager Routes */}
-            <Route path="/manager/approvals" element={<ApprovalQueue />} />
-            
-            {/* Employee Routes */}
-            <Route path="/employee/expenses" element={<ExpenseList />} />
+          {/* Public */}
+          <Route path="/login" element={<LoginPage />} />
+          <Route path="/signup" element={<SignupPage />} />
+
+          {/* Admin */}
+          <Route element={<ProtectedRoute roles={['admin']} />}>
+            <Route element={<AppLayout />}>
+              <Route path="/admin/analytics" element={<AnalyticsPage />} />
+              <Route path="/admin/users" element={<UsersPage />} />
+              <Route path="/admin/rules" element={<RulesPage />} />
+            </Route>
           </Route>
-          
-          <Route path="*" element={<Navigate to="/" replace />} />
+
+          {/* Manager */}
+          <Route element={<ProtectedRoute roles={['manager']} />}>
+            <Route element={<AppLayout />}>
+              <Route path="/manager/dashboard" element={<ManagerDashboard />} />
+              <Route path="/manager/approvals" element={<ApprovalQueue />} />
+            </Route>
+          </Route>
+
+          {/* Employee */}
+          <Route element={<ProtectedRoute roles={['employee']} />}>
+            <Route element={<AppLayout />}>
+              <Route path="/employee/expenses" element={<ExpenseList />} />
+              <Route path="/employee/expenses/:id" element={<ExpenseDetail />} />
+            </Route>
+          </Route>
+
+          {/* Default redirect */}
+          <Route path="/" element={<Navigate to={defaultRoute()} replace />} />
+          <Route path="*" element={<Navigate to={defaultRoute()} replace />} />
         </Routes>
-        <RoleSwitcher />
       </BrowserRouter>
     </QueryClientProvider>
   );
